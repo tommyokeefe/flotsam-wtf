@@ -6,19 +6,18 @@ const { title } = Astro.props;
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width" />
-		<title>{title ?? 'dump'}</title>
-		<style>
-			body {
-				max-width: 38rem;
-				margin: 2rem auto;
-				padding: 0 1rem;
-				font-family: system-ui, sans-serif;
-				line-height: 1.5;
-			}
-			a { color: inherit; }
-		</style>
+		<title>{title ?? "Flotsam"}</title>
+		<link rel="stylesheet" href="/sakura-dark.css" />
 	</head>
 	<body>
+		<header>
+			<h1><a href="/">FLOTSAM.WTF</a></h1>
+		</header>
+		<hr />
 		<slot />
+		<hr />
+		<p style="text-align: center; font-size: 0.85em;">
+			&copy; {new Date().getFullYear()} FLOTSAM.WTF
+		</p>
 	</body>
 </html>

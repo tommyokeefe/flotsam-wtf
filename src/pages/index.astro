@@ -1,7 +1,7 @@
 ---
-import Layout from '../layouts/Layout.astro';
+import Layout from "../layouts/Layout.astro";
 
-const posts = Object.values(import.meta.glob('./posts/*.md', { eager: true }))
+const posts = Object.values(import.meta.glob("./posts/*.md", { eager: true }))
 	.map((post: any) => ({
 		url: post.url,
 		title: post.frontmatter.title,
@@ -11,12 +11,18 @@ const posts = Object.values(import.meta.glob('./posts/*.md', { eager: true }))
 ---
 
 <Layout>
+	<p>
+		<a href="/what">Miscellaneous or unimportant material</a> from <a
+			href="who">Tommy O'Keefe.</a
+		>
+	</p>
 	<ul>
-		{posts.map((post) => (
-			<li>
-				<a href={post.url}>{post.title}</a>
-				— {post.date}
-			</li>
-		))}
+		{
+			posts.map((post) => (
+				<li>
+					<a href={post.url}>{post.title}</a>— {post.date}
+				</li>
+			))
+		}
 	</ul>
 </Layout>
