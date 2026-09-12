@@ -13,14 +13,14 @@ const posts = Object.values(import.meta.glob("./posts/*.md", { eager: true }))
 <Layout>
 	<p>
 		<a href="/what">Miscellaneous or unimportant material</a> from <a
-			href="who">Tommy O'Keefe.</a
+			href="who">Tommy</a
 		>
 	</p>
 	<ul>
 		{
 			posts.map((post) => (
 				<li>
-					<a href={post.url}>{post.title}</a>— {post.date}
+					<a href={post.url}>{post.title}</a> — {post.date}
 				</li>
 			))
 		}
