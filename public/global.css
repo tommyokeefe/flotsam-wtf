@@ -1,0 +1,19 @@
+.portrait-right,
+.portrait-left {
+	display: block;
+	max-width: 300px;
+	width: 100%;
+	height: auto;
+	margin: 0 auto 1rem;
+}
+
+@media (min-width: 600px) {
+	.portrait-right {
+		float: right;
+		margin: 0 0 1rem 1.5rem;
+	}
+	.portrait-left {
+		float: left;
+		margin: 0 1.5rem 1rem 0;
+	}
+}

@@ -8,7 +8,7 @@ date: '2026-09-11'
 
 Originally written on May 10th, 2023. Reproduced here because it's some top shelf flotsam from the beautiful wreckage of a life lived in the volatility & fragility of these "unprecedented times". 
 
-------------------------------------------------------------------------------------------
+---
 
    
    
