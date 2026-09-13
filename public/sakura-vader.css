@@ -25,12 +25,19 @@ body {
     font-size: 1.53rem;
   }
 }
+
 @media (max-width: 382px) {
   body {
     font-size: 1.35rem;
   }
 }
-h1, h2, h3, h4, h5, h6 {
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   line-height: 1.1;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
   font-weight: 700;
@@ -71,7 +78,9 @@ p {
   margin-bottom: 2.5rem;
 }
 
-small, sub, sup {
+small,
+sub,
+sup {
   font-size: 75%;
 }
 
@@ -83,9 +92,11 @@ a {
   text-decoration: none;
   color: #eb99a1;
 }
+
 a:visited {
   color: #e26f7a;
 }
+
 a:hover {
   color: #DA4453;
   border-bottom: 2px solid #d9d8dc;
@@ -117,7 +128,8 @@ blockquote p {
   margin-bottom: 0;
 }
 
-img, video {
+img,
+video {
   height: auto;
   max-width: 100%;
   margin-top: 0px;
@@ -135,14 +147,16 @@ pre {
   font-size: 0.9em;
 }
 
-code, kbd, samp {
+code,
+kbd,
+samp {
   font-size: 0.9em;
   padding: 0 0.5em;
   background-color: #40363a;
   white-space: pre-wrap;
 }
 
-pre > code {
+pre>code {
   padding: 0;
   background-color: transparent;
   white-space: pre;
@@ -157,16 +171,20 @@ table {
   margin-bottom: 2rem;
 }
 
-td, th {
+td,
+th {
   padding: 0.5em;
   border-bottom: 1px solid #40363a;
 }
 
 /* Buttons, forms and input */
-input, textarea {
+input,
+textarea {
   border: 1px solid #d9d8dc;
 }
-input:focus, textarea:focus {
+
+input:focus,
+textarea:focus {
   border: 1px solid #eb99a1;
 }
 
@@ -174,7 +192,8 @@ textarea {
   width: 100%;
 }
 
-.button, button,
+.button,
+button,
 input[type=submit],
 input[type=reset],
 input[type=button],
@@ -191,7 +210,9 @@ input[type=file]::file-selector-button {
   cursor: pointer;
   box-sizing: border-box;
 }
-.button:hover, button:hover,
+
+.button:hover,
+button:hover,
 input[type=submit]:hover,
 input[type=reset]:hover,
 input[type=button]:hover,
@@ -201,7 +222,8 @@ input[type=file]::file-selector-button:hover {
   outline: 0;
 }
 
-.button[disabled], button[disabled],
+.button[disabled],
+button[disabled],
 input[type=submit][disabled],
 input[type=reset][disabled],
 input[type=button][disabled],
@@ -209,7 +231,9 @@ input[type=file][disabled] {
   cursor: default;
   opacity: 0.5;
 }
-.button:focus-visible, button:focus-visible,
+
+.button:focus-visible,
+button:focus-visible,
 input[type=submit]:focus-visible,
 input[type=reset]:focus-visible,
 input[type=button]:focus-visible,
@@ -218,9 +242,12 @@ input[type=file]:focus-visible {
   outline-width: 2px;
 }
 
-textarea, select, input {
+textarea,
+select,
+input {
   color: #d9d8dc;
-  padding: 6px 10px; /* The 6px vertically centers text on FF, ignored by Webkit */
+  padding: 6px 10px;
+  /* The 6px vertically centers text on FF, ignored by Webkit */
   margin-bottom: 10px;
   background-color: #40363a;
   border: 1px solid #40363a;
@@ -228,7 +255,10 @@ textarea, select, input {
   box-shadow: none;
   box-sizing: border-box;
 }
-textarea:focus, select:focus, input:focus {
+
+textarea:focus,
+select:focus,
+input:focus {
   border: 1px solid #eb99a1;
   outline: 0;
 }
@@ -237,7 +267,9 @@ input[type=checkbox]:focus {
   outline: 1px dotted #eb99a1;
 }
 
-label, legend, fieldset {
+label,
+legend,
+fieldset {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 600;
