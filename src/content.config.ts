@@ -16,7 +16,11 @@ const posts = defineCollection({
 		// Omitted by normal posts. A Draft is readable outside production only;
 		// see `getVisiblePosts` in src/lib/posts.ts and ADR 0004.
 		draft: z.boolean().default(false),
-	}),
+		// `.strict()` so an unrecognized key fails the build instead of being
+		// dropped. Zod's default is to strip silently, which made `draf: true`
+		// publish a post that was meant to be held back — the one way draft
+		// support failed without a word. See ADR 0005.
+	}).strict(),
 });
 
 export const collections = { posts };
