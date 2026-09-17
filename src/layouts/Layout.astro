@@ -6,6 +6,11 @@ const description =
 	Astro.props.description ??
 	"Miscellaneous or unimportant material from Tommy";
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+
+const nav = [
+	{ label: "What", href: "/what" },
+	{ label: "Who", href: "/who" },
+];
 ---
 
 <html lang="en">
@@ -29,6 +34,9 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 	<body>
 		<header>
 			<h1><a href="/">FLOTSAM</a></h1>
+			<nav aria-label="Primary">
+				{nav.map((item) => <a href={item.href}>{item.label}</a>)}
+			</nav>
 		</header>
 		<hr />
 		<slot />
@@ -42,4 +50,39 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 			mermaid.run({ querySelector: '.language-mermaid' });
 		</script>
 	</body>
+
+	<style>
+		header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			flex-wrap: wrap;
+			gap: 1rem;
+			padding-bottom: 0.75rem;
+			border-bottom: 1px solid #2c2226;
+		}
+		header h1 {
+			margin: 0;
+		}
+		header nav {
+			display: flex;
+			gap: 1.75rem;
+		}
+		header nav a {
+			color: #a9a6ad;
+			text-transform: uppercase;
+			font-size: 0.8em;
+			letter-spacing: 0.08em;
+			font-weight: 600;
+			border-bottom: 1px solid transparent;
+			padding-bottom: 0.2rem;
+			transition:
+				color 0.15s ease,
+				border-color 0.15s ease;
+		}
+		header nav a:hover {
+			color: #eb99a1;
+			border-bottom-color: #eb99a1;
+		}
+	</style>
 </html>
