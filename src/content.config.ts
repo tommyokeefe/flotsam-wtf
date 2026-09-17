@@ -1,5 +1,7 @@
-import { defineCollection, z } from 'astro:content';
+import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
+// `z` re-exported from 'astro:content' is deprecated and goes away in Astro 8.
+import { z } from 'astro/zod';
 
 // One folder per Post, each with an index.md/index.mdx and its colocated images.
 // The pattern is deliberately strict: only a file named `index` is a Post, so a
