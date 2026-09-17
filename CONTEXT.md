@@ -5,7 +5,7 @@ A low-stakes personal blog. The site's own value proposition is minimizing frict
 ## Language
 
 **Post**:
-A dated, optionally-tagged piece of writing published at `/posts/<slug>`. Lives in its own folder with colocated images (cover/share art, inline post images).
+A dated, optionally-tagged piece of writing published at `/posts/<slug>`. Lives in its own folder with colocated images (cover/share art, inline post images). A Post's date is when it was **published here**, not when it was written — re-publishing older writing under a current date is expected, and any "originally written in…" framing belongs in the Post's own prose.
 _Avoid_: Article, Entry, Blog post
 
 **Page**:
