@@ -17,8 +17,12 @@ A freeform, unmoderated label attached to a Post to aid browsing. No controlled 
 _Avoid_: Category, Topic
 
 **Draft**:
-A Post with `draft: true`. Builds locally but is excluded from the post index, tag pages, and search index. A staging state of a Post, not a separate content type.
+A Post with `draft: true`. A staging state of a Post, not a separate content type. A Draft is never public: it has no URL on the live site and appears in no index, tag page, or search result there. It is readable only outside production, where it is listed alongside published Posts and visibly marked as a Draft.
 _Avoid_: Unpublished post, WIP
+
+**Visible Post**:
+A Post that exists in the current environment: every published Post, plus Drafts outside production. The set the post index and the post routes are built from.
+_Avoid_: Published post (a Draft in a preview deployment is visible but not published)
 
 **Share image**:
 The single optional `image` field on a Post, reused as both the OG/share meta image and the post-list thumbnail. Deliberately one field, not two, to keep authoring a Post frictionless.

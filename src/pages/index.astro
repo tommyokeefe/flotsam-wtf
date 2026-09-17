@@ -1,11 +1,11 @@
 ---
-import { getCollection } from "astro:content";
 import Layout from "../layouts/Layout.astro";
 import { formatPostDate } from "../lib/date";
+import { getVisiblePosts } from "../lib/posts";
 
-const posts = (await getCollection("posts")).sort(
-	(a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
-);
+// Sorted newest-first by getVisiblePosts, which also decides whether Drafts
+// are part of this build at all (ADR 0004).
+const posts = await getVisiblePosts();
 ---
 
 <Layout>
@@ -21,8 +21,25 @@ const posts = (await getCollection("posts")).sort(
 				<li>
 					<a href={`/posts/${post.id}`}>{post.data.title}</a> —{" "}
 					{formatPostDate(post.data.date)}
+					{post.data.draft && <span class="draft-marker">Draft</span>}
 				</li>
 			))
 		}
 	</ul>
 </Layout>
+
+<style>
+	/* The rule ships in every build; the element it styles only renders
+	   outside production, where Drafts exist. */
+	.draft-marker {
+		margin-left: 0.5rem;
+		padding: 0.1em 0.45em;
+		border: 1px solid #eb99a1;
+		border-radius: 0.25em;
+		color: #eb99a1;
+		font-size: 0.7em;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		vertical-align: middle;
+	}
+</style>

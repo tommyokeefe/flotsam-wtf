@@ -13,6 +13,9 @@ const posts = defineCollection({
 		title: z.string(),
 		description: z.string().optional(),
 		date: z.coerce.date(),
+		// Omitted by normal posts. A Draft is readable outside production only;
+		// see `getVisiblePosts` in src/lib/posts.ts and ADR 0004.
+		draft: z.boolean().default(false),
 	}),
 });
 
