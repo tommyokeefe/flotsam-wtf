@@ -33,7 +33,13 @@ const nav = [
 	</head>
 	<body>
 		<header>
-			<h1><a href="/">FLOTSAM</a></h1>
+			{/*
+				The site title is deliberately a paragraph, not a heading. It repeats
+				on every page, so as an H1 it left each document with two competing H1s
+				and no unambiguous page heading. Every page now carries exactly one H1
+				of its own (see ADR 0003); this is styled below to look unchanged.
+			*/}
+			<p class="site-title"><a href="/">FLOTSAM</a></p>
 			<nav aria-label="Primary">
 				{nav.map((item) => <a href={item.href}>{item.label}</a>)}
 			</nav>
@@ -61,7 +67,12 @@ const nav = [
 			padding-bottom: 0.75rem;
 			border-bottom: 1px solid #2c2226;
 		}
-		header h1 {
+		/* Restates the sakura h1 rules the site title lost when it stopped
+		   being a heading, so the masthead renders identically (ADR 0003). */
+		header .site-title {
+			font-size: 2.35em;
+			font-weight: 700;
+			line-height: 1.1;
 			margin: 0;
 		}
 		header nav {
