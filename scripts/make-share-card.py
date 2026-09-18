@@ -1,9 +1,17 @@
 """Burn the site wordmark into the fallback share image.
 
-Run from the repo root:  python3 scripts/make-share-card.py
+Run from the repo root:  python3 scripts/make-share-card.py [SRC DEST]
 
+With no arguments it builds the site's fallback card:
 Reads  src/assets/flotsam-fallback.jpg   (the untouched photograph)
 Writes src/assets/flotsam-share-card.jpg (the photograph with the wordmark)
+
+Pass SRC and DEST to brand a Post's own share image the same way, e.g.
+  python3 scripts/make-share-card.py \
+      src/content/posts/<slug>/share-photo.jpg src/content/posts/<slug>/share.jpg
+A source already cropped to 1200x630 goes through untouched; anything else is
+cover-cropped around its vertical centre, so crop it by hand first if that
+would cut off something that matters.
 
 Both are committed: the source so the card can be regenerated when the brand
 changes, the output so the build has a static file to point at. Regenerate by
@@ -29,6 +37,7 @@ to carry a light mark unaided.
 """
 
 import os
+import sys
 from PIL import Image, ImageDraw, ImageFont
 
 SRC = "src/assets/flotsam-fallback.jpg"
@@ -75,7 +84,10 @@ def scrim_bottom(im, start=0.38, max_alpha=205):
 
 
 def main():
-    card = scrim_bottom(to_card(Image.open(SRC).convert("RGB")))
+    if len(sys.argv) not in (1, 3):
+        sys.exit("usage: make-share-card.py [SRC DEST]")
+    src, dest = sys.argv[1:] or (SRC, DEST)
+    card = scrim_bottom(to_card(Image.open(src).convert("RGB")))
 
     font = wordmark_font()
     draw = ImageDraw.Draw(card)
@@ -84,9 +96,9 @@ def main():
               fill=(0, 0, 0), anchor="ls")
     draw.text(ORIGIN, WORDMARK, font=font, fill=PINK, anchor="ls")
 
-    card.save(DEST, quality=90, optimize=True, progressive=True)
+    card.save(dest, quality=90, optimize=True, progressive=True)
     print("wrote %s  %dx%d  %.0f KB"
-          % (DEST, card.width, card.height, os.path.getsize(DEST) / 1024))
+          % (dest, card.width, card.height, os.path.getsize(dest) / 1024))
 
 
 main()
