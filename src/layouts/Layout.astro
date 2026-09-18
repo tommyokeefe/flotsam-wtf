@@ -1,6 +1,7 @@
 ---
 import { getImage } from "astro:assets";
 import type { ImageMetadata } from "astro";
+import fallbackCard from "../assets/flotsam-share-card.jpg";
 
 const { frontmatter } = Astro.props;
 
@@ -16,10 +17,20 @@ const description =
 	"Miscellaneous or unimportant material from Tommy";
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
-// The share card. Only Posts pass an image today; Pages have none, and a
-// site-wide fallback for everything else is tracked separately (#2).
-const image: ImageMetadata | undefined = Astro.props.image;
-const imageAlt: string | undefined = Astro.props.imageAlt;
+// The share card. A Post may bring its own picture; everything else — the
+// Pages, the index, and a Post that simply hasn't got one — falls back to the
+// site card, so nothing shares as a bare link (#2).
+//
+// The picture and its alt text are chosen as a pair, never independently.
+// Reading `image` from the props while letting `imageAlt` fall through on its
+// own would eventually caption one picture with another's description, which
+// ADR 0006 calls out as worse than having no alt text at all.
+const FALLBACK_ALT =
+	"A bare, weather-stripped tree fallen across a tidal flat on a beach of dead trees, in sepia, with FLOTSAM lettered across the lower left.";
+
+const share: { src: ImageMetadata; alt: string } = Astro.props.image
+	? { src: Astro.props.image, alt: Astro.props.imageAlt }
+	: { src: fallbackCard, alt: FALLBACK_ALT };
 
 // Open Graph's page type. Only a Post is an `article` — `/`, the Pages, and the
 // no-props case are all the site itself. Deliberately just these two values:
@@ -49,20 +60,16 @@ const SHARE_HEIGHT = 630;
 // original may be any shape and many megabytes, and `<Image>` would hand back
 // WebP, which some scrapers still refuse. A cropped JPEG at a fixed size is the
 // one combination that renders everywhere. See ADR 0006.
-const shareImage = image
-	? await getImage({
-			src: image,
-			width: SHARE_WIDTH,
-			height: SHARE_HEIGHT,
-			fit: "cover",
-			format: "jpeg",
-		})
-	: undefined;
+const shareImage = await getImage({
+	src: share.src,
+	width: SHARE_WIDTH,
+	height: SHARE_HEIGHT,
+	fit: "cover",
+	format: "jpeg",
+});
 
 // og:image must be absolute — a scraper has no page context to resolve against.
-const shareImageURL = shareImage
-	? new URL(shareImage.src, Astro.site)
-	: undefined;
+const shareImageURL = new URL(shareImage.src, Astro.site);
 
 const nav = [
 	{ label: "What", href: "/what" },
@@ -102,18 +109,12 @@ const nav = [
 		<meta property="og:url" content={canonicalURL} />
 		{/* Without this a renderer labels the card with the bare domain. */}
 		<meta property="og:site_name" content={SITE_NAME} />
-		{
-			shareImageURL && (
-				<>
-					<meta property="og:image" content={shareImageURL.href} />
-					<meta property="og:image:width" content={String(SHARE_WIDTH)} />
-					<meta property="og:image:height" content={String(SHARE_HEIGHT)} />
-					{imageAlt && <meta property="og:image:alt" content={imageAlt} />}
-					{/* Without this X renders a small square crop, or nothing. */}
-					<meta name="twitter:card" content="summary_large_image" />
-				</>
-			)
-		}
+		<meta property="og:image" content={shareImageURL.href} />
+		<meta property="og:image:width" content={String(SHARE_WIDTH)} />
+		<meta property="og:image:height" content={String(SHARE_HEIGHT)} />
+		<meta property="og:image:alt" content={share.alt} />
+		{/* Without this X renders a small square crop, or nothing. */}
+		<meta name="twitter:card" content="summary_large_image" />
 	</head>
 	<body>
 		<header>
