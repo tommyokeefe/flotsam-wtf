@@ -30,6 +30,8 @@ const { Content } = await render(post);
 	description={post.data.description}
 	image={post.data.image}
 	imageAlt={post.data.imageAlt}
+	type="article"
+	publishedTime={post.data.date}
 >
 	<h1>{post.data.title}</h1>
 	{

@@ -15,6 +15,25 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 const image: ImageMetadata | undefined = Astro.props.image;
 const imageAlt: string | undefined = Astro.props.imageAlt;
 
+// Open Graph's page type. Only a Post is an `article` — `/`, the Pages, and the
+// no-props case are all the site itself. Deliberately just these two values:
+// `profile` for /who was considered and declined, because no scraper renders a
+// card differently for it and it would widen this to an open vocabulary (#34).
+const ogType: "website" | "article" = Astro.props.type ?? "website";
+
+// Passed as a Date and formatted here, so the tag's required format lives with
+// the tag rather than at the call site. A Draft carries this too, claiming a
+// publish date it hasn't reached: accepted, because a Draft is only reachable
+// from a preview URL handed to someone deliberately (ADR 0004).
+const publishedTime: Date | undefined = Astro.props.publishedTime;
+
+// Every Post has the same author, so this is a constant rather than a prop — a
+// prop would imply a Post could carry a different one. Built from `Astro.site`
+// so it can't drift from the origin in astro.config.mjs, and pointed at this
+// site rather than a Bluesky profile so the canonical answer to "who wrote
+// this" stays on a domain we control.
+const AUTHOR_URL = new URL("/who", Astro.site).href;
+
 // The dimensions a card is actually rendered at, so the tags can declare them
 // and a scraper can lay the card out without fetching the file first.
 const SHARE_WIDTH = 1200;
@@ -60,7 +79,20 @@ const nav = [
 
 		<meta property="og:title" content={title} />
 		<meta property="og:description" content={description} />
-		<meta property="og:type" content="website" />
+		<meta property="og:type" content={ogType} />
+		{
+			ogType === "article" && (
+				<>
+					{publishedTime && (
+						<meta
+							property="article:published_time"
+							content={publishedTime.toISOString()}
+						/>
+					)}
+					<meta property="article:author" content={AUTHOR_URL} />
+				</>
+			)
+		}
 		<meta property="og:url" content={canonicalURL} />
 		{
 			shareImageURL && (
