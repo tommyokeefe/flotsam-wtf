@@ -32,9 +32,12 @@ The folder name becomes the URL: `src/content/posts/my-post/` is served at
 file left in the folder is ignored rather than published at a URL you didn't
 intend.
 
-Frontmatter is validated at build time, so a missing or malformed **required**
-field fails the build rather than rendering something broken. Unknown keys are a
-different story — see the warning under [Drafts](#drafts).
+Frontmatter is validated at build time and the schema is **strict**: a missing
+required field, a malformed value, and a key the schema doesn't recognize all
+fail the build rather than rendering something broken or quietly dropping what
+you wrote. One consequence worth knowing — don't add a field ahead of the
+feature that reads it. Writing `tags:` on a post fails the build until tag
+support lands.
 
 | Field | Required | Notes |
 |---|---|---|
@@ -60,10 +63,12 @@ it's listed and rendered like any other post but visibly marked. Production
 never builds it at all, so it has no URL on the live site. Remove the field (or
 set it to `false`) to publish.
 
-> **Spell it correctly.** The schema ignores keys it doesn't recognize rather
-> than rejecting them, so `draf: true` is silently discarded and the post
-> publishes as if you'd never marked it. Confirm the post shows its `DRAFT`
-> marker in the index before trusting that it's held back.
+> **A typo fails the build, on purpose.** Misspell it as `draf: true` and the
+> build stops with `Unrecognized key: "draf"` rather than ignoring it. That
+> strictness exists for this field above all: a silently dropped `draft` would
+> publish a post you meant to hold back, with nothing to tell you. If a build
+> fails this way, fix the spelling or add the field to the schema — don't
+> loosen the schema. See ADR 0005.
 
 ## Adding a page
 
