@@ -25,5 +25,5 @@ A Post that exists in the current environment: every published Post, plus Drafts
 _Avoid_: Published post (a Draft in a preview deployment is visible but not published)
 
 **Share image**:
-The single optional `image` field on a Post, reused as both the OG/share meta image and the post-list thumbnail. Deliberately one field, not two, to keep authoring a Post frictionless.
-_Avoid_: Cover image, Thumbnail (as a separate concept from the share image — they are the same field)
+The optional `image` field on a Post, colocated with it, used as the image on the card that renders when the Post is shared. Always paired with `imageAlt`, which describes it for anyone who meets the Post as a card rather than a page — a Post carrying one without the other is rejected.
+_Avoid_: Cover image (the Share image is never rendered on the Post itself)
