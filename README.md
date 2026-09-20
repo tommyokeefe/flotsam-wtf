@@ -2,7 +2,7 @@
 
 A small personal blog, built with [Astro](https://astro.build) and themed with
 [Sakura](https://github.com/oxalorg/sakura) (the `sakura-vader` variant). Lives at
-[flotsam.wtf](https://flotsam.wtf).
+[flotsam.wtf](https://www.flotsam.wtf).
 
 ## Local development
 
