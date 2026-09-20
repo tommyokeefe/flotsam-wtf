@@ -17,7 +17,7 @@ A freeform, unmoderated label attached to a Post to aid browsing. No controlled 
 _Avoid_: Category, Topic
 
 **Draft**:
-A Post with `draft: true`. A staging state of a Post, not a separate content type. A Draft is never public: it has no URL on the live site and appears in no index, tag page, or search result there. It is readable only outside production, where it is listed alongside published Posts and visibly marked as a Draft. A Draft never has a Document either: it is not announced to the ATmosphere, so the guarantee that a Draft is never public holds outside this site as well as on it.
+A Post with `draft: true`. A staging state of a Post, not a separate content type. A Draft is never public: it has no URL on the live site and appears in no index, tag page, or search result there. It is readable only outside production, where it is listed alongside published Posts and visibly marked as a Draft. A Draft also has no Document (see **Document**).
 _Avoid_: Unpublished post, WIP
 
 **Visible Post**:

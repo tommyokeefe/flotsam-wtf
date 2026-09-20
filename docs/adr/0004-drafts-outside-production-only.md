@@ -8,4 +8,4 @@ All Post lookups go through `getVisiblePosts()` in `src/lib/posts.ts` rather tha
 
 Consequence worth stating: nothing in the repo exercises this. With no Draft committed and no test suite, the protection against regression is this document plus the comments at `draftsAreReadable`.
 
-**Amended by #37:** the Visible Post manifest (`/posts.json`) now has a check. `npm run audit:manifest` re-derives the Draft set from Post frontmatter, deliberately without calling `getVisiblePosts()`, and fails if a Draft appears in the built manifest. The rule still has one production owner; the audit exists to disagree with it.
+**Amended by #37 and #40:** the Visible Post manifest (`/posts.json`) now has a check. `npm run audit:manifest` re-derives the Draft set from Post frontmatter, deliberately without calling `getVisiblePosts()`, and fails if a Draft appears in the built manifest. The rule still has one production owner; the audit exists to disagree with it. There is now also a test suite (`npm test`), but it covers the publish planner and not the predicate above, which is still exercised only by the audit.

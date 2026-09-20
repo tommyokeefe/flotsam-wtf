@@ -174,7 +174,7 @@ test("deletions exactly at the threshold are allowed", () => {
 
 test("by default, unpublishing a large share of the archive in one run is refused", () => {
 	const result = plan([post()], [document(), ...stale(10)]);
-	assert.notEqual(result.refusal, null);
+	assert.match(result.refusal, /10 deletions/);
 	assert.deepEqual(result.deletions, []);
 });
 
@@ -186,7 +186,7 @@ const withImage = (cid = "bafkreiaaa") => ({
 	imageCid: cid,
 });
 
-test("a Share image is carried into the Document as its cover image", () => {
+test("a Share image is carried into the Document as its `coverImage`", () => {
 	const { creations } = plan([post(withImage())], []);
 	assert.deepEqual(creations[0].coverImage, {
 		url: "https://www.flotsam.wtf/_astro/share.abc.jpeg",
@@ -218,7 +218,7 @@ test("gaining a Share image produces an update", () => {
 	assert.equal(updates[0].document.coverImage.cid, "bafkreiaaa");
 });
 
-test("losing a Share image produces an update whose Document has no cover image", () => {
+test("losing a Share image produces an update whose Document has no `coverImage`", () => {
 	const { updates } = plan([post()], [document({ coverImageCid: "bafkreiaaa" })]);
 	assert.equal(updates.length, 1);
 	assert.equal("coverImage" in updates[0].document, false);
@@ -283,7 +283,7 @@ test("a manifest entry missing a required field is refused rather than written",
 	for (const field of ["title", "path", "canonicalUrl", "publishedAt"]) {
 		for (const bad of [undefined, ""]) {
 			const result = plan([post({ [field]: bad })], [document()]);
-			assert.match(result.refusal, /malformed/i, `${field} = ${JSON.stringify(bad)}`);
+			assert.match(result.refusal, /malformed entry/, `${field} = ${JSON.stringify(bad)}`);
 			assert.deepEqual(result.updates, []);
 			assert.deepEqual(result.creations, []);
 			assert.deepEqual(result.deletions, []);
@@ -293,19 +293,19 @@ test("a manifest entry missing a required field is refused rather than written",
 
 test("a manifest with a Share image but no way to identify it is refused", () => {
 	const result = plan([post({ image: "https://www.flotsam.wtf/_astro/share.abc.jpeg" })], []);
-	assert.match(result.refusal, /malformed/i);
+	assert.match(result.refusal, /malformed entry/);
 });
 
 test("a manifest listing the same path twice is refused", () => {
 	const result = plan([post(), post({ title: "Wind again" })], []);
-	assert.match(result.refusal, /twice|duplicate/i);
+	assert.match(result.refusal, /\/posts\/wind twice/);
 	assert.deepEqual(result.creations, []);
 });
 
 test("two existing Documents at one path are refused rather than guessed between", () => {
 	const twin = document({ uri: "at://did:plc:test/site.standard.document/3kdoc9" });
 	const result = plan([post()], [document(), twin]);
-	assert.match(result.refusal, /more than one Document/i);
+	assert.match(result.refusal, /more than one Document exists for the same path/);
 	assert.deepEqual(result.updates, []);
 	assert.deepEqual(result.deletions, []);
 });
@@ -339,9 +339,19 @@ test("planning does not modify what it was given", () => {
 		return Object.freeze(value);
 	};
 	const manifest = deepFreeze([post({ title: "Windy" }), post({ path: "/posts/new" })]);
-	const existing = deepFreeze([document(), ...stale(2)]);
+	const existing = deepFreeze([document(), ...stale(1)]);
+
 	// A frozen input makes any write throw (this file is a module, so strict).
-	assert.doesNotThrow(() => plan(manifest, existing));
+	// The plan has to reach a creation, an update and a deletion for that to mean
+	// the whole path was exercised and not just an early refusal.
+	let result;
+	assert.doesNotThrow(() => {
+		result = plan(manifest, existing);
+	});
+	assert.equal(result.refusal, null);
+	assert.equal(result.creations.length, 1);
+	assert.equal(result.updates.length, 1);
+	assert.equal(result.deletions.length, 1);
 });
 
 test("once a plan has been carried out, planning again produces nothing", () => {
@@ -384,3 +394,141 @@ test("once a plan has been carried out, planning again produces nothing", () => 
 function asExisting({ coverImage, ...rest }) {
 	return { ...rest, ...(coverImage && { coverImageCid: coverImage.cid }) };
 }
+
+// `kept` Posts that still exist, each with its Document, plus `gone` Documents
+// whose Posts have been removed: a whole archive as the planner would see it.
+function archive(kept, gone) {
+	const posts = Array.from({ length: kept }, (_, i) =>
+		post({
+			path: `/posts/keep-${i}`,
+			title: `Keep ${i}`,
+			canonicalUrl: `https://www.flotsam.wtf/posts/keep-${i}/`,
+		}),
+	);
+	const documents = posts.map((p, i) =>
+		document({
+			uri: `at://did:plc:test/site.standard.document/3kkeep${i}`,
+			path: p.path,
+			title: p.title,
+			canonicalUrl: p.canonicalUrl,
+		}),
+	);
+	return { posts, documents: [...documents, ...stale(gone)] };
+}
+
+test("by default, a small archive can lose at most one Document in a run", () => {
+	// Three Documents, a manifest that still has one: deleting two of three is
+	// what a truncated manifest looks like, and an absolute cap of three wouldn't
+	// notice it.
+	const { posts, documents } = archive(1, 2);
+	const result = plan(posts, documents);
+	assert.match(result.refusal, /2 deletions/);
+	assert.deepEqual(result.deletions, []);
+});
+
+test("by default, a small archive may still lose one Document", () => {
+	const { posts, documents } = archive(2, 1);
+	const result = plan(posts, documents);
+	assert.equal(result.refusal, null);
+	assert.equal(result.deletions.length, 1);
+});
+
+test("by default, a large archive can lose three Documents in a run but not four", () => {
+	const three = archive(6, 3);
+	assert.equal(plan(three.posts, three.documents).deletions.length, 3);
+
+	const four = archive(6, 4);
+	assert.match(plan(four.posts, four.documents).refusal, /4 deletions/);
+});
+
+test("an explicit limit is used as given, as the deliberate way to do a bigger clear-out", () => {
+	const { posts, documents } = archive(1, 2);
+	const result = plan(posts, documents, { maxDeletions: 2 });
+	assert.equal(result.refusal, null);
+	assert.equal(result.deletions.length, 2);
+});
+
+test("another Publication's Documents don't raise the limit on ours", () => {
+	const foreign = Array.from({ length: 10 }, (_, i) =>
+		document({
+			uri: `at://did:plc:test/site.standard.document/3kfor${i}`,
+			site: OTHER_PUBLICATION,
+			path: `/posts/theirs-${i}`,
+		}),
+	);
+	const { posts, documents } = archive(1, 2);
+	const result = plan(posts, [...documents, ...foreign]);
+	assert.match(result.refusal, /2 deletions/);
+});
+
+test("a limit that would switch the guard off is rejected, not obeyed", () => {
+	for (const bad of [Number.NaN, -1, 1.5, Number.POSITIVE_INFINITY, "2", null]) {
+		assert.throws(
+			() => plan([post()], [document()], { maxDeletions: bad }),
+			/maxDeletions/,
+			String(bad),
+		);
+	}
+});
+
+test("leaving the limit unset uses the default", () => {
+	assert.doesNotThrow(() => plan([post()], [document()], { maxDeletions: undefined }));
+});
+
+test("planning without saying which Publication it is for is rejected", () => {
+	for (const bad of [undefined, "", 42, null]) {
+		assert.throws(
+			() => planDocuments([post()], [document()], { publication: bad }),
+			/publication/,
+			String(bad),
+		);
+	}
+	assert.throws(() => planDocuments([post()], [document()]), /publication/);
+});
+
+test("a manifest that isn't a list is refused rather than crashing", () => {
+	for (const bad of [undefined, null, "posts", { length: 1 }]) {
+		const result = plan(bad, [document()]);
+		assert.match(result.refusal, /manifest/i, String(bad));
+		assert.deepEqual(result.deletions, []);
+	}
+});
+
+test("a manifest entry that isn't an object, or has a non-string field, is refused", () => {
+	for (const bad of [null, "wind", 7, post({ title: 42 }), post({ path: ["/posts/wind"] })]) {
+		const result = plan([bad], [document()]);
+		assert.match(result.refusal, /malformed entry/, JSON.stringify(bad));
+		assert.deepEqual(result.updates, []);
+		assert.deepEqual(result.deletions, []);
+	}
+});
+
+test("a published date that can't be read is refused, not planned as an endless update", () => {
+	const result = plan([post({ publishedAt: "yesterday-ish" })], [document()]);
+	assert.match(result.refusal, /malformed entry/);
+});
+
+test("existing Documents that aren't a list are refused rather than treated as none", () => {
+	for (const bad of [undefined, null, "docs"]) {
+		const result = plan([post()], bad);
+		assert.match(result.refusal, /existing Documents/, String(bad));
+		assert.deepEqual(result.creations, []);
+	}
+});
+
+test("an existing Document that can't be attributed is refused, not quietly duplicated", () => {
+	for (const missing of ["uri", "site", "path"]) {
+		const unattributable = document({ [missing]: undefined });
+		const result = plan([post()], [unattributable]);
+		assert.match(result.refusal, /can't tell/, missing);
+		assert.deepEqual(result.creations, []);
+		assert.deepEqual(result.deletions, []);
+	}
+});
+
+test("an existing Document with an empty description matches a Post with none", () => {
+	for (const empty of ["", null]) {
+		const result = plan([post()], [document({ description: empty })]);
+		assert.deepEqual(result.updates, [], JSON.stringify(empty));
+	}
+});
