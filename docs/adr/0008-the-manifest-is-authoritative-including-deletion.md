@@ -1,12 +1,12 @@
 # The manifest is authoritative, and that includes deleting Documents
 
-Publishing to the ATmosphere is a reconcile, not an append. The build emits a manifest of every Visible Post (`/posts.json`, ADR 0004), and publishing makes the PDS match it: a Post with no Document gets one, a Post whose metadata changed has its Document updated, and **a Document whose Post is no longer in the manifest is deleted.** That deletion is deliberate, and it is meant to be done by CI (#43). The planner that decides all of this exists (`scripts/plan-documents.mjs`); the executor that carries it out is #41.
+Publishing to the ATmosphere is a reconcile, not an append. The build emits a manifest of every Visible Post (`/posts.json`, ADR 0004), and publishing makes the PDS match it: a Post with no Document gets one, a Post whose metadata changed has its Document updated, and **a Document whose Post is no longer in the manifest is deleted.** That deletion is deliberate, and it is meant to be done by CI (#43). The planner that decides all of this is `scripts/plan-documents.mjs`; the executor that carries it out is `scripts/publish-documents.mjs`.
 
 **It only makes sense from a production-mode build.** A Visible Post includes Drafts in a preview build, and a Draft never has a Document. The planner has no Draft rule of its own, on purpose (ADR 0004 gives that rule one owner), so it trusts the manifest it is handed, and CI builds in an environment where `getVisiblePosts()` excludes Drafts. `npm run audit:manifest` is the check that this holds.
 
 **Why deletion is part of it.** Nothing may outlive the thing it points at. A Post that is deleted, or turned back into a Draft, has to stop being announced: a Draft is never public, and that guarantee has to hold outside this site as well as on it, or "pulling a Post back" only pulls it back on flotsam.wtf. An append-only publisher cannot retract anything, so it would fail exactly when the failure matters most.
 
-**"CI deletes records" is meant to look alarming, and removing the step is the wrong response.** Without it, Documents would drift permanently away from the Posts they point at, with nobody able to tell which were stale. The risk is real but it is a risk of a *bad plan*, so it is controlled where plans are made, not by giving up the ability to delete. The planner is a pure function and the only place anything destructive is decided; the executor is meant to just run what it is handed. It refuses, and writes nothing, when:
+**"CI deletes records" is meant to look alarming, and removing the step is the wrong response.** Without it, Documents would drift permanently away from the Posts they point at, with nobody able to tell which were stale. The risk is real but it is a risk of a *bad plan*, so it is controlled where plans are made, not by giving up the ability to delete. The planner is a pure function and the only place anything destructive is decided; the executor just runs what it is handed. It refuses, and writes nothing, when:
 
 - the manifest is empty, because a build bug that emits nothing must never read as "the archive has been deleted";
 - the plan would delete more than a few Documents at once (`MAX_DELETIONS` in the planner) or more than half of what exists, whichever is fewer. The second half matters at this size: with three Posts, a flat cap of three would let a truncated manifest unpublish the whole archive without noticing. Retracting a Post or two is ordinary, so one deletion is always allowed; a larger clear-out has to be a deliberate act;
@@ -14,7 +14,7 @@ Publishing to the ATmosphere is a reconcile, not an append. The build emits a ma
 
 A refusal is meant to be a failure to publish and never a failure to deploy (#43): the site still ships and simply lacks the reference until the next run.
 
-**A larger clear-out is a deliberate act, and here is how.** The planner takes an explicit `maxDeletions` for one run, which is used as given and replaces the default. Nothing passes it yet: how a person raises it is #41's decision, and until then the other way is to retract in steps, one run each.
+**A larger clear-out is a deliberate act, and here is how.** The planner takes an explicit `maxDeletions` for one run, which is used as given and replaces the default, and the publish command exposes it as `--max-deletions <n>`, so a bigger clear-out is a flag someone has to type and that shows in the command that ran it. The other way is to retract in steps, one run each.
 
 **The planner only considers this Publication's Documents.** An account can hold several Publications and the PDS lists all of their Documents together. Anything belonging to another Publication is neither updated nor deleted.
 
