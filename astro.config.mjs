@@ -2,13 +2,13 @@
 import { defineConfig } from 'astro/config';
 
 import mdx from '@astrojs/mdx';
+import { SITE_URL } from './src/lib/site.mjs';
 
 // https://astro.build/config
 export default defineConfig({
-  // The host the site is actually served from: the apex redirects here (308),
-  // so every og:url, absolute og:image and canonical derived from this should
-  // name the address that answers, not one that bounces.
-  site: 'https://www.flotsam.wtf',
+  // Lives in src/lib/site.mjs so the Publication and the pages can't disagree
+  // about which host the site is on; see there for why it's www.
+  site: SITE_URL,
   integrations: [mdx()],
   markdown: {
     syntaxHighlight: {

@@ -1,0 +1,10 @@
+{
+	"headers": [
+		{
+			"source": "/.well-known/site.standard.publication",
+			"headers": [
+				{ "key": "Content-Type", "value": "text/plain; charset=utf-8" }
+			]
+		}
+	]
+}
