@@ -3,17 +3,50 @@ import { getImage } from "astro:assets";
 import type { ImageMetadata } from "astro";
 import fallbackCard from "../assets/flotsam-share-card.jpg";
 
-const { frontmatter } = Astro.props;
+// Everything Layout accepts, in one place. Adding head metadata means adding a
+// prop here first, so the set of inputs can be read without scanning the file.
+interface Props {
+	title?: string;
+	description?: string;
+	// A Post's own share picture. Falls back to the site card when absent.
+	image?: ImageMetadata;
+	// Optional here only because the schema's inferred type can't express the
+	// pairing; the schema's `.refine` is what guarantees an `image` has one
+	// (ADR 0006).
+	imageAlt?: string;
+	// Only a Post is an `article`; see `ogType` below.
+	type?: "website" | "article";
+	// Passed as a Date and formatted where the tag is rendered, so the tag's
+	// required format lives with the tag rather than at the call site. A Draft
+	// carries this too, claiming a publish date it hasn't reached: accepted,
+	// because a Draft is only reachable from a preview URL handed to someone
+	// deliberately (ADR 0004).
+	publishedTime?: Date;
+	// Not passed by any caller. Astro supplies it when this file is used as a
+	// markdown layout (`layout:` in a .md/.mdx page's frontmatter), where the
+	// page's frontmatter arrives here instead of as named props.
+	frontmatter?: { title?: string; description?: string };
+}
+
+const {
+	frontmatter,
+	title: titleProp,
+	description: descriptionProp,
+	image,
+	imageAlt,
+	type,
+	publishedTime,
+} = Astro.props;
 
 // The site's own name, as distinct from any one page's title. Declared once
 // because the title fallback below needs the same string, and two literals
 // three lines apart drift the moment either is edited.
 const SITE_NAME = "Flotsam";
 
-const title = frontmatter?.title ?? Astro.props.title ?? SITE_NAME;
+const title = frontmatter?.title ?? titleProp ?? SITE_NAME;
 const description =
 	frontmatter?.description ??
-	Astro.props.description ??
+	descriptionProp ??
 	"Miscellaneous or unimportant material from Tommy";
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
@@ -28,21 +61,15 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 const FALLBACK_ALT =
 	"A bare, weather-stripped tree fallen across a tidal flat on a beach of dead trees, in sepia, with FLOTSAM lettered across the lower left.";
 
-const share: { src: ImageMetadata; alt: string } = Astro.props.image
-	? { src: Astro.props.image, alt: Astro.props.imageAlt }
+const share: { src: ImageMetadata; alt: string | undefined } = image
+	? { src: image, alt: imageAlt }
 	: { src: fallbackCard, alt: FALLBACK_ALT };
 
 // Open Graph's page type. Only a Post is an `article` — `/`, the Pages, and the
 // no-props case are all the site itself. Deliberately just these two values:
 // `profile` for /who was considered and declined, because no scraper renders a
 // card differently for it and it would widen this to an open vocabulary (#34).
-const ogType: "website" | "article" = Astro.props.type ?? "website";
-
-// Passed as a Date and formatted here, so the tag's required format lives with
-// the tag rather than at the call site. A Draft carries this too, claiming a
-// publish date it hasn't reached: accepted, because a Draft is only reachable
-// from a preview URL handed to someone deliberately (ADR 0004).
-const publishedTime: Date | undefined = Astro.props.publishedTime;
+const ogType = type ?? "website";
 
 // Every Post has the same author, so this is a constant rather than a prop — a
 // prop would imply a Post could carry a different one. Built from `Astro.site`

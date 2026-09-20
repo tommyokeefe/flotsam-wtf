@@ -13,6 +13,7 @@ npm install
 npm run dev      # dev server, drafts visible
 npm run build    # production build into dist/
 npm run preview  # serve the built site
+npm run check    # type-check .astro files
 ```
 
 ## Writing a post
