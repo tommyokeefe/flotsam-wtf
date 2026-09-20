@@ -7,12 +7,18 @@ import fallbackCard from "../assets/flotsam-share-card.jpg";
 interface Props {
 	title?: string;
 	description?: string;
-	// Used for share Falls back to the site card when absent.
+	// A Post's own share picture. Falls back to the site card when absent.
 	image?: ImageMetadata;
-	// optional but will fail if image is provided and alt isn't.
+	// Optional here, but the build fails if a Post has an `image` and no alt
+	// (the schema's `.refine`, ADR 0006).
 	imageAlt?: string;
 	// Only a Post is an `article`; see `ogType` below.
 	type?: "website" | "article";
+	// Passed as a Date and formatted where the tag is rendered, so the tag's
+	// required format lives with the tag rather than at the call site. A Draft
+	// carries this too, claiming a publish date it hasn't reached: accepted,
+	// because a Draft is only reachable from a preview URL handed to someone
+	// deliberately (ADR 0004).
 	publishedTime?: Date;
 	frontmatter?: { title?: string; description?: string };
 }
@@ -27,6 +33,9 @@ const {
 	publishedTime,
 } = Astro.props;
 
+// The site's own name, as distinct from any one page's title. Declared once
+// because the title fallback below needs the same string, and two literals
+// three lines apart drift the moment either is edited.
 const SITE_NAME = "Flotsam";
 
 const title = frontmatter?.title ?? titleProp ?? SITE_NAME;
@@ -36,6 +45,14 @@ const description =
 	"Miscellaneous or unimportant material from Tommy";
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
+// The share card. A Post may bring its own picture; everything else — the
+// Pages, the index, and a Post that simply hasn't got one — falls back to the
+// site card, so nothing shares as a bare link (#2).
+//
+// The picture and its alt text are chosen as a pair, never independently.
+// Reading `image` from the props while letting `imageAlt` fall through on its
+// own would eventually caption one picture with another's description, which
+// ADR 0006 calls out as worse than having no alt text at all.
 const FALLBACK_ALT =
 	"A bare, weather-stripped tree fallen across a tidal flat on a beach of dead trees, in sepia, with FLOTSAM lettered across the lower left.";
 
@@ -43,8 +60,17 @@ const share: { src: ImageMetadata; alt: string | undefined } = image
 	? { src: image, alt: imageAlt }
 	: { src: fallbackCard, alt: FALLBACK_ALT };
 
+// Open Graph's page type. Only a Post is an `article` — `/`, the Pages, and the
+// no-props case are all the site itself. Deliberately just these two values:
+// `profile` for /who was considered and declined, because no scraper renders a
+// card differently for it and it would widen this to an open vocabulary (#34).
 const ogType = type ?? "website";
 
+// Every Post has the same author, so this is a constant rather than a prop — a
+// prop would imply a Post could carry a different one. Built from `Astro.site`
+// so it can't drift from the origin in astro.config.mjs, and pointed at this
+// site rather than a Bluesky profile so the canonical answer to "who wrote
+// this" stays on a domain we control.
 const AUTHOR_URL = new URL("/who", Astro.site).href;
 
 // The dimensions a card is actually rendered at, so the tags can declare them
