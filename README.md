@@ -14,7 +14,7 @@ npm run dev      # dev server, drafts visible
 npm run build    # production build into dist/
 npm run preview  # serve the built site
 npm run check    # type-check .astro files
-npm run audit:manifest  # after a build: fail if a Draft reached dist/posts.json
+npm run audit:manifest  # after a production build: fail if a Draft reached dist/posts.json
 ```
 
 ## Writing a post
