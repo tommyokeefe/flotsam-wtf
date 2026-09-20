@@ -1,23 +1,29 @@
 // One-off: create Flotsam's Publication record on the PDS.
 //
-// Run by hand, by Tommy, with his own credentials — never by an agent, and never
-// in CI. Creating the record needs an app password, which is why this is a
-// script you run once and not part of the build.
+// Run by hand, by Tommy, with his own credentials. The write is never run by an
+// agent and never in CI: creating the record needs an app password, which is why
+// this is a script you run once and not part of the build.
 //
-//   ATPROTO_IDENTIFIER=<handle or DID> ATPROTO_APP_PASSWORD=<app password> \
-//     npm run init:publication
+// Read the password without leaving it in your shell history:
+//
+//   read -rs ATPROTO_APP_PASSWORD && export ATPROTO_APP_PASSWORD
+//   ATPROTO_IDENTIFIER=<handle or DID> npm run init:publication
 //
 // It prints the created AT-URI and stops. It deliberately does not write that
 // into the repo: paste it into `PUBLICATION_AT_URI` in src/lib/site.mjs and
 // commit it yourself, once, so that change is a visible, reviewable act.
 //
-// `--dry-run` needs no password. It resolves the account, looks for an existing
-// Publication and prints the record it would create, without logging in or
-// writing anything. Reading a repo is public; only writing needs a credential.
+// `--dry-run` needs no password, only the identifier:
+//
+//   ATPROTO_IDENTIFIER=<handle or DID> npm run init:publication -- --dry-run
+//
+// It resolves the account, looks for an existing Publication and prints the
+// record it would create, without logging in or writing anything (reading a
+// repo is public; only writing needs a credential). It exits non-zero in the
+// same cases a real run would refuse, so it is a faithful preview.
 //
 // Credentials come from the environment only, and are never printed or stored.
-import config from "../astro.config.mjs";
-import { SITE_DESCRIPTION, SITE_NAME } from "../src/lib/site.mjs";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "../src/lib/site.mjs";
 
 const COLLECTION = "site.standard.publication";
 // Only used to turn a handle into a DID. Everything else talks to the
@@ -31,9 +37,17 @@ function fail(message) {
 	process.exit(1);
 }
 
-// The Publication's `url` is the origin, with no trailing slash, taken from the
-// same `site` the pages' canonicals derive from.
-const siteUrl = new URL(config.site).origin;
+// Checked before any network call, so a missing input costs nothing.
+const identifier = process.env.ATPROTO_IDENTIFIER;
+if (!identifier) fail("set ATPROTO_IDENTIFIER to your handle or DID.");
+const password = process.env.ATPROTO_APP_PASSWORD;
+if (!dryRun && !password) {
+	fail("set ATPROTO_APP_PASSWORD to an app password (not your account password).");
+}
+
+// The Publication's `url` is the origin, with no trailing slash — the same host
+// the pages' canonicals derive from.
+const siteUrl = new URL(SITE_URL).origin;
 
 const record = {
 	$type: COLLECTION,
@@ -43,16 +57,27 @@ const record = {
 	preferences: { showInDiscover: true },
 };
 
-// Errors carry the endpoint and status, and nothing from the request, so a
-// failure can't echo a credential into a terminal or a log.
+// A network failure ends in `fail`, not a stack trace, and says only which host
+// couldn't be reached — never anything from the request.
+async function request(url, init) {
+	try {
+		return await fetch(url, init);
+	} catch (error) {
+		return fail(`couldn't reach ${new URL(url).host}: ${error.cause?.code ?? error.message}`);
+	}
+}
+
+// The three XRPC calls this needs, over plain fetch. Deliberately not the AT
+// Protocol SDK: the repo has no runtime dependencies and a one-off script isn't
+// a reason to add a large one. Errors carry the endpoint and status, and
+// nothing from the request, so a failure can't echo a credential into a
+// terminal or a log.
 async function xrpc(base, nsid, { method = "GET", params, body, token } = {}) {
 	const url = new URL(`/xrpc/${nsid}`, base);
-	if (params) {
-		for (const [key, value] of Object.entries(params)) {
-			url.searchParams.set(key, value);
-		}
+	for (const [key, value] of Object.entries(params ?? {})) {
+		url.searchParams.set(key, value);
 	}
-	const response = await fetch(url, {
+	const response = await request(url, {
 		method,
 		headers: {
 			...(body && { "Content-Type": "application/json" }),
@@ -60,7 +85,7 @@ async function xrpc(base, nsid, { method = "GET", params, body, token } = {}) {
 		},
 		body: body && JSON.stringify(body),
 	});
-	const payload = await response.json().catch(() => ({}));
+	const payload = (await response.json().catch(() => null)) ?? {};
 	if (!response.ok) {
 		fail(
 			`${nsid} failed (${response.status}${payload.error ? ` ${payload.error}` : ""}): ${payload.message ?? "no detail"}`,
@@ -69,29 +94,32 @@ async function xrpc(base, nsid, { method = "GET", params, body, token } = {}) {
 	return payload;
 }
 
-async function resolveDid(identifier) {
-	if (identifier.startsWith("did:")) return identifier;
+async function resolveDid(handleOrDid) {
+	if (handleOrDid.startsWith("did:")) return handleOrDid;
 	const { did } = await xrpc(PUBLIC_APPVIEW, "com.atproto.identity.resolveHandle", {
-		params: { handle: identifier },
+		params: { handle: handleOrDid },
 	});
 	return did;
 }
 
-// Where the account's repo actually lives. Read from the DID document rather
+// Where the account's repo actually lives, read from its DID document rather
 // than assumed to be bsky.social, so this works for a self-hosted PDS too.
+// did:plc only: that's what an account created through Bluesky or a standard
+// PDS gets, and it is Tommy's.
 async function resolvePds(did) {
-	const documentUrl = did.startsWith("did:plc:")
-		? `https://plc.directory/${did}`
-		: did.startsWith("did:web:")
-			? `https://${did.slice("did:web:".length)}/.well-known/did.json`
-			: fail(`don't know how to resolve ${did}`);
-	const response = await fetch(documentUrl);
-	if (!response.ok) fail(`couldn't fetch the DID document for ${did} (${response.status})`);
-	const document = await response.json();
-	const pds = document.service?.find(
+	if (!did.startsWith("did:plc:")) fail(`only did:plc accounts are supported, not ${did}.`);
+	const response = await request(`https://plc.directory/${did}`);
+	if (!response.ok) fail(`couldn't fetch the DID document for ${did} (${response.status}).`);
+	const didDocument = await response.json();
+	const endpoint = didDocument.service?.find(
 		(service) => service.id === "#atproto_pds",
 	)?.serviceEndpoint;
-	return pds ?? fail(`${did}'s DID document names no PDS`);
+	if (!endpoint) fail(`${did}'s DID document names no PDS.`);
+	// The app password is about to be sent here, so it must not go in clear.
+	if (!URL.canParse(endpoint) || new URL(endpoint).protocol !== "https:") {
+		fail(`${did}'s PDS is ${endpoint}, which isn't https; refusing to send a password to it.`);
+	}
+	return endpoint;
 }
 
 // A DID can hold several Publications (Standard.site's own author has three),
@@ -99,21 +127,19 @@ async function resolvePds(did) {
 // collection, and ignores a trailing slash so `https://x.y/` and `https://x.y`
 // count as the same site.
 async function findExisting(pds, did) {
-	const same = (url) => typeof url === "string" && url.replace(/\/+$/, "") === siteUrl;
+	const isSameSite = (url) =>
+		typeof url === "string" && url.replace(/\/+$/, "") === siteUrl;
 	let cursor;
 	do {
 		const page = await xrpc(pds, "com.atproto.repo.listRecords", {
 			params: { repo: did, collection: COLLECTION, limit: "100", ...(cursor && { cursor }) },
 		});
-		const match = page.records.find((entry) => same(entry.value?.url));
+		const match = page.records.find((entry) => isSameSite(entry.value?.url));
 		if (match) return match.uri;
 		cursor = page.cursor;
 	} while (cursor);
 	return null;
 }
-
-const identifier = process.env.ATPROTO_IDENTIFIER;
-if (!identifier) fail("set ATPROTO_IDENTIFIER to your handle or DID.");
 
 const did = await resolveDid(identifier);
 const pds = await resolvePds(did);
@@ -133,13 +159,16 @@ if (dryRun) {
 	process.exit(0);
 }
 
-const password = process.env.ATPROTO_APP_PASSWORD;
-if (!password) fail("set ATPROTO_APP_PASSWORD to an app password (not your account password).");
-
 const session = await xrpc(pds, "com.atproto.server.createSession", {
 	method: "POST",
 	body: { identifier, password },
 });
+// The record is written to the session's repo, but the duplicate check above
+// looked in the resolved one. They should be the same account; if they aren't,
+// that check said nothing about where this would write.
+if (session.did !== did) {
+	fail(`logged in as ${session.did}, but checked ${did} for an existing Publication; not writing.`);
+}
 
 const created = await xrpc(pds, "com.atproto.repo.createRecord", {
 	method: "POST",
@@ -148,6 +177,4 @@ const created = await xrpc(pds, "com.atproto.repo.createRecord", {
 });
 
 console.log(`Created the Publication for ${siteUrl}:\n  ${created.uri}\n`);
-console.log(
-	"Next: set PUBLICATION_AT_URI in src/lib/site.mjs to that value and commit it.",
-);
+console.log("Next: set PUBLICATION_AT_URI in src/lib/site.mjs to that value and commit it.");
