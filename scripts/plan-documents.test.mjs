@@ -121,10 +121,7 @@ test("a Document whose Post is no longer in the manifest produces a deletion", (
 });
 
 test("a Post whose slug changed produces a deletion of the old Document and a creation of a new one", () => {
-	const renamed = post({
-		path: "/posts/wind-2",
-		canonicalUrl: "https://www.flotsam.wtf/posts/wind-2/",
-	});
+	const renamed = post({ path: "/posts/wind-2" });
 	const result = plan([renamed], [document()]);
 	assert.deepEqual(result.deletions, [
 		{ uri: "at://did:plc:test/site.standard.document/3kdoc1", path: "/posts/wind" },
@@ -356,8 +353,8 @@ test("planning does not modify what it was given", () => {
 test("once a plan has been carried out, planning again produces nothing", () => {
 	const manifest = [
 		post({ description: "A poem about wind.", ...withImage("bafkreiaaa") }),
-		post({ path: "/posts/plain", title: "Plain", canonicalUrl: "https://www.flotsam.wtf/posts/plain/" }),
-		post({ path: "/posts/renamed", title: "Renamed", canonicalUrl: "https://www.flotsam.wtf/posts/renamed/" }),
+		post({ path: "/posts/plain", title: "Plain" }),
+		post({ path: "/posts/renamed", title: "Renamed" }),
 	];
 	const before = [
 		document({ title: "Wind, old title", coverImageCid: "bafkreizzz" }),
@@ -401,7 +398,6 @@ function archive(kept, gone) {
 		post({
 			path: `/posts/keep-${i}`,
 			title: `Keep ${i}`,
-			canonicalUrl: `https://www.flotsam.wtf/posts/keep-${i}/`,
 		}),
 	);
 	const documents = posts.map((p, i) =>

@@ -2,9 +2,9 @@
 // manifest) and what does exist on the PDS, what to create, update and delete —
 // or whether to refuse the whole thing.
 //
-// Everything destructive is decided here and nowhere else. The executor (#41) is
-// meant to be a loop over a plan that has already been validated, so it can't be
-// the place a bad delete slips through, and the dangerous logic can be tested by
+// Everything destructive is decided here and nowhere else. The executor
+// (publish-documents.mjs) is a loop over a plan that has already been validated,
+// so it can't be the place a bad delete slips through, and the dangerous logic can be tested by
 // passing in two arrays. This performs no I/O and never mutates its arguments;
 // anything that needs the network or the disk (like an image's CID) is done by
 // the caller and passed in. See ADR 0008 for why the manifest is authoritative,

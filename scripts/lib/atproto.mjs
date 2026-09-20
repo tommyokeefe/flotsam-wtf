@@ -34,6 +34,11 @@ export async function xrpc(
 	nsid,
 	{ method = "GET", params, body, bytes, contentType, token } = {},
 ) {
+	// A call is either JSON or raw bytes, and raw bytes need a type. Neither is
+	// something the data can cause, so a wrong combination is a bug in the caller.
+	if (body && bytes) throw new TypeError("xrpc takes a body or bytes, not both.");
+	if (bytes && !contentType) throw new TypeError("xrpc needs a contentType for bytes.");
+
 	const url = new URL(`/xrpc/${nsid}`, base);
 	for (const [key, value] of Object.entries(params ?? {})) {
 		url.searchParams.set(key, value);
