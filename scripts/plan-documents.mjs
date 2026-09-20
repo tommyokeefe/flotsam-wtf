@@ -11,14 +11,15 @@
 // deletions included, and ADR 0007 for why a Document carries no prose.
 //
 // The manifest is a list of what the site emits at /posts.json — `title`,
-// `path`, `canonicalUrl`, `publishedAt`, and `description` / `image` only when
-// the Post has them — plus `imageCid`, the CID of that image's bytes, which the
-// caller works out from the built file because the planner reads no files.
+// `path`, `publishedAt`, and `description` / `image` only when the Post has
+// them (it also carries a `canonicalUrl`, which the planner ignores: see below)
+// — plus `imageCid`, the CID of that image's bytes, which the caller works out
+// from the built file because the planner reads no files.
 //
 // `allDocuments` is every `site.standard.document` the PDS holds for the
-// account, each with its `uri`, `site`, `title`, `path`, `canonicalUrl`,
-// `publishedAt`, `description` when it has one, and `coverImageCid` (the CID of
-// its stored cover blob) when it has one. It must be the *complete* list: a
+// account, each with its `uri`, `site`, `title`, `path`, `publishedAt`,
+// `description` when it has one, and `coverImageCid` (the CID of its stored
+// cover blob) when it has one. It must be the *complete* list: a
 // caller that stops paging early makes Posts that are already published look
 // new, and they would be created twice.
 //
@@ -26,6 +27,12 @@
 // planned for; only its Documents are touched. `maxDeletions` (optional) is the
 // deliberate way to allow a bigger clear-out for one run. Both are the caller's
 // code, so a bad one throws.
+//
+// A Document has no canonical URL of its own. The lexicon has no such field: a
+// reader builds it from the Publication's `url` plus the Document's `path`. So
+// the manifest's `canonicalUrl` is never written or compared; a planner that did
+// would see an existing Document as always different and rewrite every one of
+// them on every run.
 //
 // A plan is `{ creations, updates, deletions, refusal }`. Creations and the
 // `document` of each update are the complete Document to write, with
@@ -48,14 +55,15 @@ const MAX_DELETIONS = 3;
 
 const isNonEmptyString = (value) => typeof value === "string" && value !== "";
 
-// The fields every Document is written with. A date that can't be read would
+// The fields every Document is written with, and all the planner needs of an
+// entry. A date that can't be read would
 // compare unequal to everything, forever, so it counts as a hole too. A Share
 // image only counts if it comes with the identity used to tell whether it
 // changed.
 const isWellFormedEntry = (entry) =>
 	entry !== null &&
 	typeof entry === "object" &&
-	["title", "path", "canonicalUrl", "publishedAt"].every((field) =>
+	["title", "path", "publishedAt"].every((field) =>
 		isNonEmptyString(entry[field]),
 	) &&
 	!Number.isNaN(Date.parse(entry.publishedAt)) &&
@@ -80,7 +88,6 @@ function differs(current, planned) {
 	return (
 		current.title !== planned.title ||
 		(current.description || undefined) !== planned.description ||
-		current.canonicalUrl !== planned.canonicalUrl ||
 		Date.parse(current.publishedAt) !== Date.parse(planned.publishedAt) ||
 		current.coverImageCid !== planned.coverImage?.cid
 	);
@@ -166,7 +173,6 @@ export function planDocuments(manifest, allDocuments, options = {}) {
 			title: entry.title,
 			publishedAt: entry.publishedAt,
 			path: entry.path,
-			canonicalUrl: entry.canonicalUrl,
 			...(entry.description && { description: entry.description }),
 			...(entry.image && { coverImage: { url: entry.image, cid: entry.imageCid } }),
 		};

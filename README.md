@@ -16,6 +16,7 @@ npm run preview  # serve the built site
 npm run check    # type-check .astro files
 npm run audit:manifest  # after a production build: fail if a Draft reached dist/posts.json
 npm test  # unit tests, on Node's built-in runner
+npm run publish:documents  # after a production build: make the PDS match the manifest; add -- --dry-run to preview (needs credentials to write)
 npm run init:publication  # ONE-OFF, needs credentials: create the Publication record; add -- --dry-run to preview (see the script header)
 ```
 

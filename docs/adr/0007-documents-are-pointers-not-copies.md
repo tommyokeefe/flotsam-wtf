@@ -1,6 +1,6 @@
 # A Document points at a Post; it never carries the Post
 
-A Document (the Standard.site `site.standard.document` record that announces a Post to the ATmosphere) carries a Post's metadata and its URL: title, published date, path, canonical URL, and its description and Share image when it has them. It does **not** carry the Post's prose. The lexicon has an optional `textContent` field for it, and it is omitted; so is `tags`. `www.flotsam.wtf` remains the only place a Post is read.
+A Document (the Standard.site `site.standard.document` record that announces a Post to the ATmosphere) carries a Post's metadata and where to find it: title, published date, path, and its description and Share image when it has them. It has no canonical URL of its own, because the lexicon has no such field: a reader joins the Publication's `url` and the Document's `path`. It does **not** carry the Post's prose. The lexicon has an optional `textContent` field for it, and it is omitted; so is `tags`. `www.flotsam.wtf` remains the only place a Post is read.
 
 **This is the decision most likely to be "fixed".** A missing `textContent` looks like an oversight, and filling it in looks like an easy improvement: the Post is right there in the repo. Don't, without accepting what the reasons below cost.
 
