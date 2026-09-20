@@ -31,4 +31,4 @@ export const SITE_DESCRIPTION = 'Miscellaneous or unimportant material from Tomm
 // AT-URI it prints here and commit. Until then everything that reads this stays
 // inert rather than serving something wrong.
 /** @type {string | null} */
-export const PUBLICATION_AT_URI = null;
+export const PUBLICATION_AT_URI = "at://did:plc:obgch4imvvmvbva32qyk5cwd/site.standard.publication/3mvxy476p6d22";
