@@ -16,7 +16,7 @@ export const SHARE_HEIGHT = 630;
  *
  * Shared by the page's `og:image` and the Visible Post manifest so that both
  * point at the same built file: what a card shows and what gets federated as
- * the Post's cover can't drift apart.
+ * the Document's `coverImage` can't drift apart.
  */
 export function getShareImage(src: ImageMetadata) {
 	return getImage({

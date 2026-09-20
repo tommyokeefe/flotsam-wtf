@@ -7,9 +7,16 @@
 // implementation would make the two agree by construction and the audit
 // worthless. If you're tempted to dedupe them, don't.
 //
+// Only meaningful against a production-mode build (`npm run build`, or CI).
+// Drafts legitimately appear in the manifest of a dev or preview build, so this
+// fails there by design — that is what a leak looks like.
+//
+// It fails closed: anything it can't confidently reason about is an error, not
+// a pass. A quiet false pass is the one outcome this script exists to prevent.
+//
 // Run after a build: `npm run build && npm run audit:manifest`.
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync, readdirSync } from "node:fs";
+import { basename, join, sep } from "node:path";
 
 const root = join(import.meta.dirname, "..");
 const postsDir = join(root, "src/content/posts");
@@ -20,35 +27,44 @@ function fail(message) {
 	process.exit(1);
 }
 
-// `draft: true`, quoted or not, any case, optionally followed by a comment. The
-// schema is `.strict()` (ADR 0005) and `draft` is a boolean, so this is the only
-// shape a Draft can take; anything else parses as "not a Draft", which is the
-// same reading the schema gives it.
-const DRAFT_LINE = /^draft:\s*["']?true["']?\s*(#.*)?$/im;
+// `draft: true` as a root key, quoted or not, any case, optionally followed by a
+// comment. Covers the forms the schema's boolean accepts (ADR 0005 keeps the
+// schema `.strict()`, so there is no other key to hide it under).
+const DRAFT_LINE = /^["']?draft["']?\s*:\s*["']?true["']?\s*(#.*)?$/im;
+const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*(\r?\n|$)/;
 
-function frontmatterOf(source) {
-	return source.match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1] ?? "";
-}
+// Astro turns a folder name into the Post's URL slug by slugifying it (case
+// folded, punctuation dropped), so `My-Post/` is served at `/posts/my-post`.
+// This script doesn't reimplement that: it accepts only names that are already
+// plain slugs, where the folder name *is* the URL. Reimplementing the slugger
+// would just be a second copy that can disagree with the first, quietly.
+const PLAIN_SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
-// A Post is a folder holding `index.md` or `index.mdx`, and its folder name is
-// its slug (ADR 0001).
+// A Post is `<slug>/index.md` or `<slug>/index.mdx` (ADR 0001). The collection's
+// glob would also accept deeper nesting, and a Post folder holding both files;
+// checking every match at exactly one level deep turns the first into an error
+// and covers the second.
 const draftPaths = new Set();
-for (const entry of readdirSync(postsDir, { withFileTypes: true })) {
-	if (!entry.isDirectory()) continue;
-	const file = ["index.md", "index.mdx"]
-		.map((name) => join(postsDir, entry.name, name))
-		.find((candidate) => {
-			try {
-				readFileSync(candidate);
-				return true;
-			} catch {
-				return false;
-			}
-		});
-	if (!file) continue;
-	if (DRAFT_LINE.test(frontmatterOf(readFileSync(file, "utf8")))) {
-		draftPaths.add(`/posts/${entry.name}`);
+for (const relative of readdirSync(postsDir, { recursive: true })) {
+	if (!/^index\.mdx?$/.test(basename(relative))) continue;
+
+	const segments = relative.split(sep);
+	if (segments.length !== 2) {
+		fail(
+			`${relative} is nested; Posts are one flat folder each (ADR 0001), and this audit can't predict a nested Post's URL.`,
+		);
 	}
+
+	const source = readFileSync(join(postsDir, relative), "utf8");
+	if (!DRAFT_LINE.test(source.match(FRONTMATTER)?.[1] ?? "")) continue;
+
+	const [slug] = segments;
+	if (!PLAIN_SLUG.test(slug)) {
+		fail(
+			`Draft folder "${slug}" isn't a plain lowercase slug, so this audit can't tell which URL it becomes. Rename it, or a leak of it would go unnoticed.`,
+		);
+	}
+	draftPaths.add(`/posts/${slug}`);
 }
 
 // A manifest that is missing or unreadable can't be shown to be Draft-free, so
