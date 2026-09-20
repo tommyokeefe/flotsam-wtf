@@ -2,6 +2,7 @@
 import type { ImageMetadata } from "astro";
 import fallbackCard from "../assets/flotsam-share-card.jpg";
 import { SHARE_HEIGHT, SHARE_WIDTH, getShareImage } from "../lib/share-image";
+import { SITE_DESCRIPTION, SITE_NAME } from "../lib/site.mjs";
 
 // Props accepted by the Layout component
 interface Props {
@@ -33,16 +34,9 @@ const {
 	publishedTime,
 } = Astro.props;
 
-// The site's own name, as distinct from any one page's title. Declared once
-// because the title fallback below needs the same string, and two literals
-// three lines apart drift the moment either is edited.
-const SITE_NAME = "Flotsam";
-
 const title = frontmatter?.title ?? titleProp ?? SITE_NAME;
 const description =
-	frontmatter?.description ??
-	descriptionProp ??
-	"Miscellaneous or unimportant material from Tommy";
+	frontmatter?.description ?? descriptionProp ?? SITE_DESCRIPTION;
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
 // The share card. A Post may bring its own picture; everything else — the

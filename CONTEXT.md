@@ -27,3 +27,11 @@ _Avoid_: Published post (a Draft in a preview deployment is visible but not publ
 **Share image**:
 The optional `image` field on a Post, colocated with it, used as the image on the card that renders when the Post is shared. Always paired with `imageAlt`, which describes it for anyone who meets the Post as a card rather than a page — a Post carrying one without the other is rejected.
 _Avoid_: Cover image (the Share image is never rendered on the Post itself)
+
+**Publication**:
+The record describing Flotsam itself in the ATmosphere, in the [Standard.site](https://standard.site) `site.standard.publication` lexicon: the site's name, description and URL, and its opt-in to discovery. It lives on Tommy's Personal Data Server, not in this repo, and there is exactly one for the site. Its AT-URI is held in one constant, `PUBLICATION_AT_URI` in `src/lib/site.mjs`, from which the `.well-known` verification endpoint, every Document's `site` field and the build-time lookup all derive. It reuses the words the site already uses for itself (`SITE_NAME`, `SITE_DESCRIPTION`), so it has no second identity. Not a place anything is read: `www.flotsam.wtf` is.
+_Avoid_: Blog, Feed, Site (the site is the website; the Publication is its record)
+
+**Document**:
+The record that points at one Visible Post in the ATmosphere (`site.standard.document`): the Post's title, published date, path, canonical URL, and its description and Share image when it has them. **A Document is not the Post it points at.** The Post is writing, lives in this repo, and is read only at `www.flotsam.wtf`; the Document is a derived pointer to it, carries none of its prose, and can be deleted and rebuilt from the Posts without losing anything. Deleting a Document never deletes a Post, while removing a Post removes its Document. Documents are matched to Posts by `path`; their keys are assigned by the PDS and can't be derived from a slug.
+_Avoid_: Post (a Document isn't one), Copy, Mirror (it carries no body), Cover image (the Share image is the Post's; `coverImage` is only the Document field it's uploaded into)
