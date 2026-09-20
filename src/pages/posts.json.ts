@@ -18,7 +18,12 @@ export const GET: APIRoute = async ({ site }) => {
 			return {
 				title: post.data.title,
 				path,
-				canonicalUrl: new URL(path, site).href,
+				// With the trailing slash, because that is the address the Post's own
+				// page declares as `og:url` (Layout derives it from `Astro.url.pathname`,
+				// which has one in a directory-format build). Both spellings serve, but
+				// a Document and its page should agree about their own address. `path`
+				// stays slash-less: it's the match key and what the site links to.
+				canonicalUrl: new URL(`${path}/`, site).href,
 				publishedAt: post.data.date.toISOString(),
 				...(post.data.description && { description: post.data.description }),
 				// The Share image as its generated JPEG, not the author's original
