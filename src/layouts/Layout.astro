@@ -1,7 +1,7 @@
 ---
-import { getImage } from "astro:assets";
 import type { ImageMetadata } from "astro";
 import fallbackCard from "../assets/flotsam-share-card.jpg";
+import { SHARE_HEIGHT, SHARE_WIDTH, getShareImage } from "../lib/share-image";
 
 // Props accepted by the Layout component
 interface Props {
@@ -73,22 +73,7 @@ const ogType = type ?? "website";
 // this" stays on a domain we control.
 const AUTHOR_URL = new URL("/who", Astro.site).href;
 
-// The dimensions a card is actually rendered at, so the tags can declare them
-// and a scraper can lay the card out without fetching the file first.
-const SHARE_WIDTH = 1200;
-const SHARE_HEIGHT = 630;
-
-// Deliberately a generated derivative rather than the author's own file: the
-// original may be any shape and many megabytes, and `<Image>` would hand back
-// WebP, which some scrapers still refuse. A cropped JPEG at a fixed size is the
-// one combination that renders everywhere. See ADR 0006.
-const shareImage = await getImage({
-	src: share.src,
-	width: SHARE_WIDTH,
-	height: SHARE_HEIGHT,
-	fit: "cover",
-	format: "jpeg",
-});
+const shareImage = await getShareImage(share.src);
 
 // og:image must be absolute — a scraper has no page context to resolve against.
 const shareImageURL = new URL(shareImage.src, Astro.site);
