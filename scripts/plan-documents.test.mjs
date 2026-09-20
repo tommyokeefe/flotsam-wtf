@@ -15,12 +15,13 @@ const post = (overrides = {}) => ({
 	...overrides,
 });
 
+// The lexicon has no `canonicalUrl`: a reader builds the URL from the
+// Publication's `url` plus `path`, so a Document doesn't carry one.
 const document = (overrides = {}) => ({
 	uri: "at://did:plc:test/site.standard.document/3kdoc1",
 	site: PUBLICATION,
 	title: "Wind",
 	path: "/posts/wind",
-	canonicalUrl: "https://www.flotsam.wtf/posts/wind/",
 	publishedAt: "2026-09-11T00:00:00.000Z",
 	...overrides,
 });
@@ -36,7 +37,6 @@ test("a Post with no Document produces a creation", () => {
 				title: "Wind",
 				publishedAt: "2026-09-11T00:00:00.000Z",
 				path: "/posts/wind",
-				canonicalUrl: "https://www.flotsam.wtf/posts/wind/",
 			},
 		],
 		updates: [],
@@ -65,7 +65,6 @@ test("a changed title produces an update that keeps the Document's identity", ()
 					title: "Windy",
 					publishedAt: "2026-09-11T00:00:00.000Z",
 					path: "/posts/wind",
-					canonicalUrl: "https://www.flotsam.wtf/posts/wind/",
 				},
 			},
 		],
@@ -82,7 +81,6 @@ test("a description is carried into the Document when the Post has one", () => {
 			title: "Wind",
 			publishedAt: "2026-09-11T00:00:00.000Z",
 			path: "/posts/wind",
-			canonicalUrl: "https://www.flotsam.wtf/posts/wind/",
 			description: "A poem about wind.",
 		},
 	]);
@@ -224,13 +222,15 @@ test("losing a Share image produces an update whose Document has no `coverImage`
 	assert.equal("coverImage" in updates[0].document, false);
 });
 
-test("a changed canonical URL produces an update", () => {
-	const { updates } = plan(
-		[post()],
-		[document({ canonicalUrl: "https://flotsam.wtf/posts/wind/" })],
+test("the manifest's canonical URL is not part of a Document, so it can't cause an update", () => {
+	// A reader derives it from the Publication's url plus `path`, and the lexicon
+	// has no field for it. Comparing one would plan an update on every run.
+	const { updates, creations } = plan(
+		[post({ canonicalUrl: "https://elsewhere.example/posts/wind/" })],
+		[document()],
 	);
-	assert.equal(updates.length, 1);
-	assert.equal(updates[0].document.canonicalUrl, "https://www.flotsam.wtf/posts/wind/");
+	assert.deepEqual(updates, []);
+	assert.deepEqual(creations, []);
 });
 
 test("a changed published date produces an update", () => {
@@ -280,7 +280,7 @@ test("another Publication's Document at the same path is not mistaken for ours",
 });
 
 test("a manifest entry missing a required field is refused rather than written", () => {
-	for (const field of ["title", "path", "canonicalUrl", "publishedAt"]) {
+	for (const field of ["title", "path", "publishedAt"]) {
 		for (const bad of [undefined, ""]) {
 			const result = plan([post({ [field]: bad })], [document()]);
 			assert.match(result.refusal, /malformed entry/, `${field} = ${JSON.stringify(bad)}`);
@@ -321,7 +321,6 @@ test("a planned Document carries only its metadata: no prose, no Tags, nothing e
 	});
 	const [created] = plan([noisy], []).creations;
 	assert.deepEqual(Object.keys(created).sort(), [
-		"canonicalUrl",
 		"coverImage",
 		"description",
 		"path",
@@ -410,7 +409,6 @@ function archive(kept, gone) {
 			uri: `at://did:plc:test/site.standard.document/3kkeep${i}`,
 			path: p.path,
 			title: p.title,
-			canonicalUrl: p.canonicalUrl,
 		}),
 	);
 	return { posts, documents: [...documents, ...stale(gone)] };

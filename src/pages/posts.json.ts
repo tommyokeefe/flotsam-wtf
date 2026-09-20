@@ -20,9 +20,10 @@ export const GET: APIRoute = async ({ site }) => {
 				path,
 				// With the trailing slash, because that is the address the Post's own
 				// page declares as `og:url` (Layout derives it from `Astro.url.pathname`,
-				// which has one in a directory-format build). Both spellings serve, but
-				// a Document and its page should agree about their own address. `path`
-				// stays slash-less: it's the match key and what the site links to.
+				// which has one in a directory-format build). Informational only: a
+				// Document has no canonical URL, so this is never written to one (a
+				// reader joins the Publication's `url` and the Document's `path`).
+				// `path` stays slash-less: it's the match key and what the site links to.
 				canonicalUrl: new URL(`${path}/`, site).href,
 				publishedAt: post.data.date.toISOString(),
 				...(post.data.description && { description: post.data.description }),

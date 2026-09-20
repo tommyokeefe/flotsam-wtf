@@ -13,7 +13,8 @@
     "check": "astro check",
     "audit:manifest": "node scripts/audit-manifest.mjs",
     "init:publication": "node scripts/init-publication.mjs",
-    "test": "node --test \"scripts/*.test.mjs\""
+    "test": "node --test \"scripts/*.test.mjs\"",
+    "publish:documents": "node scripts/publish-documents.mjs"
   },
   "dependencies": {
     "@astrojs/markdown-satteri": "^0.4.1",
