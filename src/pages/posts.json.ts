@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { getVisiblePosts } from '../lib/posts';
+import { getVisiblePosts, postPath } from '../lib/posts';
 import { getShareImage } from '../lib/share-image';
 
 // Every Visible Post as JSON, for CI to publish from. Sourced from
@@ -14,7 +14,7 @@ export const GET: APIRoute = async ({ site }) => {
 
 	const manifest = await Promise.all(
 		posts.map(async (post) => {
-			const path = `/posts/${post.id}`;
+			const path = postPath(post);
 			return {
 				title: post.data.title,
 				path,
