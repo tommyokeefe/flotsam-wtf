@@ -1,7 +1,7 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import { formatPostDate } from "../lib/date";
-import { getVisiblePosts } from "../lib/posts";
+import { getVisiblePosts, postPath } from "../lib/posts";
 
 // Sorted newest-first by getVisiblePosts, which also decides whether Drafts
 // are part of this build at all (ADR 0004).
@@ -19,7 +19,7 @@ const posts = await getVisiblePosts();
 		{
 			posts.map((post) => (
 				<li>
-					<a href={`/posts/${post.id}`}>{post.data.title}</a> —{" "}
+					<a href={postPath(post)}>{post.data.title}</a> —{" "}
 					{formatPostDate(post.data.date)}
 					{post.data.draft && <span class="draft-marker">Draft</span>}
 				</li>
