@@ -1,0 +1,70 @@
+# On every push to main: build, audit, publish Documents to the ATmosphere,
+# then deploy the site to production. In that order, so a new Post's page can
+# name its Document on its first production deploy rather than its second.
+#
+# Vercel's own automatic deploys are off for main (vercel.json), so this is the
+# only thing that deploys production. Don't turn them back on: see ADR 0009.
+#
+# The deploy runs even when publishing fails. A broken ATmosphere step costs a
+# page its Document reference until the next run; it never stops the site
+# shipping.
+#
+# Secrets (set by hand, #44):
+#   ATPROTO_APP_PASSWORD     an app password for the Publication's account
+#   ATPROTO_IDENTIFIER       optional; the Publication's DID is used when unset
+#   VERCEL_DEPLOY_HOOK_URL   a Vercel deploy hook for main
+
+name: Publish and deploy
+
+on:
+  push:
+    branches: [main]
+
+# One run at a time, never cancelled part-way: two overlapping publishes can
+# create two Documents for one path, which the planner then refuses to guess
+# between (see the header of scripts/publish-documents.mjs).
+concurrency:
+  group: publish-and-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # A production-mode build: VERCEL_ENV is unset here, so Drafts are left
+      # out of the manifest (ADR 0004).
+      - run: npm run build
+      # Its own step so a Draft in the manifest shows as the reason nothing was
+      # published. publish:documents runs it again itself.
+      - run: npm run audit:manifest
+      - run: npm run publish:documents
+        env:
+          ATPROTO_APP_PASSWORD: ${{ secrets.ATPROTO_APP_PASSWORD }}
+          ATPROTO_IDENTIFIER: ${{ secrets.ATPROTO_IDENTIFIER }}
+
+  deploy:
+    needs: publish
+    # Whether or not publish succeeded; only a cancelled run doesn't deploy.
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger the Vercel production deploy
+        env:
+          HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::error::VERCEL_DEPLOY_HOOK_URL is not set, so production was not deployed."
+            exit 1
+          fi
+          curl --fail --silent --show-error --retry 3 --retry-all-errors -X POST "$HOOK" -o /dev/null
