@@ -3,7 +3,9 @@ import { render } from "astro:content";
 import type { CollectionEntry } from "astro:content";
 import Layout from "../../layouts/Layout.astro";
 import { formatPostDate } from "../../lib/date";
-import { getVisiblePosts } from "../../lib/posts";
+import { lookupDocumentRefs } from "../../lib/document-refs.mjs";
+import { getVisiblePosts, postPath } from "../../lib/posts";
+import { PUBLICATION_AT_URI } from "../../lib/site.mjs";
 
 // A single, non-rest param: post slugs are flat by decision (ADR 0001), so a
 // nested URL like /posts/2027/wind can't be produced by accident.
@@ -11,17 +13,22 @@ export async function getStaticPaths() {
 	// A Draft is excluded here rather than hidden at render time, so in
 	// production no route is emitted for it at all (ADR 0004).
 	const posts = await getVisiblePosts();
+	// Asked once per build, not once per page. Never throws: if the PDS can't be
+	// read, every page just goes without (#42).
+	const documentRefs = await lookupDocumentRefs(PUBLICATION_AT_URI);
 	return posts.map((post) => ({
 		params: { slug: post.id },
-		props: { post },
+		props: { post, documentUri: documentRefs.get(postPath(post)) },
 	}));
 }
 
 interface Props {
 	post: CollectionEntry<"posts">;
+	// The AT-URI of the Post's Document, when it has one and the PDS said so.
+	documentUri?: string;
 }
 
-const { post } = Astro.props;
+const { post, documentUri } = Astro.props;
 const { Content } = await render(post);
 ---
 
@@ -32,6 +39,7 @@ const { Content } = await render(post);
 	imageAlt={post.data.imageAlt}
 	type="article"
 	publishedTime={post.data.date}
+	documentUri={documentUri}
 >
 	<h1>{post.data.title}</h1>
 	{

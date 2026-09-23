@@ -15,6 +15,16 @@ const draftsAreReadable =
 	import.meta.env.DEV || process.env.VERCEL_ENV === 'preview';
 
 /**
+ * A Post's path on the site, without a trailing slash. Also the key a Document
+ * is matched to its Post by (ADR 0008): the manifest publishes it as the
+ * Document's `path`, and the page finds its Document by it, so both read it
+ * from here.
+ */
+export function postPath(post: CollectionEntry<'posts'>): string {
+	return `/posts/${post.id}`;
+}
+
+/**
  * The Posts that exist in this environment, newest first: every published Post,
  * plus Drafts when `draftsAreReadable`.
  *

@@ -21,6 +21,10 @@ interface Props {
 	// because a Draft is only reachable from a preview URL handed to someone
 	// deliberately (ADR 0004).
 	publishedTime?: Date;
+	// The AT-URI of a Post's Document (#42), so a reader or scraper can tie the
+	// page to its record. Only a Post has one; a Post whose Document couldn't be
+	// looked up at build time goes without rather than failing the build.
+	documentUri?: string;
 	frontmatter?: { title?: string; description?: string };
 }
 
@@ -32,6 +36,7 @@ const {
 	imageAlt,
 	type,
 	publishedTime,
+	documentUri,
 } = Astro.props;
 
 const title = frontmatter?.title ?? titleProp ?? SITE_NAME;
@@ -116,6 +121,10 @@ const nav = [
 		<meta property="og:image:alt" content={share.alt} />
 		{/* Without this X renders a small square crop, or nothing. */}
 		<meta name="twitter:card" content="summary_large_image" />
+		{
+			/* Standard.site's verification: this page is the one the Document points at. */
+			documentUri && <link rel="site.standard.document" href={documentUri} />
+		}
 	</head>
 	<body>
 		<header>
