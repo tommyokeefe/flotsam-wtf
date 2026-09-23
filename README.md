@@ -98,6 +98,15 @@ Anything beyond that uses Astro's per-component scoped `<style>` blocks, with
 `public/global.css` holding the few genuinely global utilities. There's no
 utility framework — see ADR 0002 for why.
 
+## Deploying
+
+Merging to `main` deploys production, but not through Vercel's Git integration,
+which is switched off for `main` in `vercel.json`. The `Publish and deploy`
+workflow builds the site, audits the manifest, publishes Documents to the
+ATmosphere, then triggers a Vercel deploy hook. It deploys even when publishing
+fails. Other branches still get Vercel preview deployments as usual. ADR 0009
+explains why; don't re-enable the automatic deploy.
+
 ## Where the reasoning lives
 
 - **`CONTEXT.md`** — the domain glossary. What "Post", "Page", "Draft" and "Tag"

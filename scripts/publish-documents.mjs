@@ -23,10 +23,11 @@
 // is deliberately small (ADR 0008), so a larger clear-out is a flag someone has
 // to type, and shows in the command that ran it.
 //
-// Publish from one place, which is CI. A Share image is recognised by the CID of
+// Publish from one place, which is CI (`.github/workflows/publish-and-deploy.yml`,
+// on every push to main). A Share image is recognised by the CID of
 // its bytes, and the generated JPEG isn't guaranteed to be byte-identical across
 // machines, so alternating between two would re-upload the cover each time. Runs
-// must not overlap either (give the CI job a concurrency group): two racing
+// must not overlap either (the workflow has a concurrency group): two racing
 // creations leave two Documents for one path, which the planner refuses to guess
 // between. If that happens, delete one of the two records by hand and re-run.
 //
@@ -358,9 +359,10 @@ async function main() {
 		return;
 	}
 
+	// `||`, not `??`: CI passes a secret that isn't set as an empty string.
 	const session = await xrpc(pds, "com.atproto.server.createSession", {
 		method: "POST",
-		body: { identifier: process.env.ATPROTO_IDENTIFIER ?? did, password },
+		body: { identifier: process.env.ATPROTO_IDENTIFIER || did, password },
 	});
 	// Everything above was read from, and decided about, `did`. A session for any
 	// other account would write somewhere the plan never looked.
