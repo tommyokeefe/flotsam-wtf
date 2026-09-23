@@ -1,13 +1,6 @@
-# On every push to main: build, audit, publish Documents to the ATmosphere,
-# then deploy the site to production. In that order, so a new Post's page can
-# name its Document on its first production deploy rather than its second.
-#
-# Vercel's own automatic deploys are off for main (vercel.json), so this is the
-# only thing that deploys production. Don't turn them back on: see ADR 0009.
-#
-# The deploy runs even when publishing fails. A broken ATmosphere step costs a
-# page its Document reference until the next run; it never stops the site
-# shipping.
+# On every push to main: build, audit, publish Documents, then deploy production
+# through a Vercel deploy hook, deploying even when publishing fails. Vercel's
+# own automatic deploys are off for main; ADR 0009 says why.
 #
 # Secrets (set by hand, #44):
 #   ATPROTO_APP_PASSWORD     an app password for the Publication's account
@@ -33,7 +26,6 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -47,7 +39,26 @@ jobs:
       # Its own step so a Draft in the manifest shows as the reason nothing was
       # published. publish:documents runs it again itself.
       - run: npm run audit:manifest
+      # A re-run of an older run checks out an older commit, and a checkout
+      # gives every file a fresh mtime, so publish-documents' freshness check
+      # can't tell. Publishing it would put back old titles and delete newer
+      # Posts. Only the run for the tip of main publishes; the deploy below
+      # builds the tip either way.
+      - name: Check this commit is still the tip of main
+        id: tip
+        run: |
+          tip=$(git ls-remote origin refs/heads/main | cut -f1)
+          if [ "$tip" = "$GITHUB_SHA" ]; then
+            echo "latest=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::main is now at $tip, not $GITHUB_SHA; not publishing an older manifest."
+            echo "latest=false" >> "$GITHUB_OUTPUT"
+          fi
+      # A step timeout, not a job one: a timed-out step is a failure, which
+      # still deploys, and nothing here should read as a cancelled run.
       - run: npm run publish:documents
+        if: steps.tip.outputs.latest == 'true'
+        timeout-minutes: 10
         env:
           ATPROTO_APP_PASSWORD: ${{ secrets.ATPROTO_APP_PASSWORD }}
           ATPROTO_IDENTIFIER: ${{ secrets.ATPROTO_IDENTIFIER }}
@@ -57,7 +68,6 @@ jobs:
     # Whether or not publish succeeded; only a cancelled run doesn't deploy.
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
-    timeout-minutes: 5
     steps:
       - name: Trigger the Vercel production deploy
         env:
@@ -67,4 +77,4 @@ jobs:
             echo "::error::VERCEL_DEPLOY_HOOK_URL is not set, so production was not deployed."
             exit 1
           fi
-          curl --fail --silent --show-error --retry 3 --retry-all-errors -X POST "$HOOK" -o /dev/null
+          curl --max-time 30 --fail --silent --show-error --retry 3 --retry-all-errors -X POST "$HOOK" -o /dev/null

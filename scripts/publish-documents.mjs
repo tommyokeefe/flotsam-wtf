@@ -33,7 +33,7 @@
 //
 // Credentials come from the environment only, and are never printed or stored:
 // `ATPROTO_APP_PASSWORD`, and optionally `ATPROTO_IDENTIFIER` (the Publication's
-// own account is used when it is unset).
+// own account is used when it is unset or empty).
 import { spawnSync } from "node:child_process";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
