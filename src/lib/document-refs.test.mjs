@@ -131,6 +131,23 @@ test("a PDS that answers with something other than a list of records gives no re
 	assert.equal((await lookupDocumentRefs(PUBLICATION, { fetch, warn: quiet })).size, 0);
 });
 
+test("a PDS that hands back a cursor it already gave gives no references, without waiting out the deadline", async () => {
+	const { fetch } = fakeFetch([
+		[`https://plc.directory/${DID}`, didDocument],
+		[`${PDS}/xrpc/`, json({ records: [record("a")], cursor: "same" })],
+	]);
+	const started = Date.now();
+	assert.equal((await lookupDocumentRefs(PUBLICATION, { fetch, warn: quiet })).size, 0);
+	assert.ok(Date.now() - started < 1000);
+});
+
+test("something thrown that isn't an Error still gives no references", async () => {
+	const fetch = async () => {
+		throw undefined;
+	};
+	assert.equal((await lookupDocumentRefs(PUBLICATION, { fetch, warn: quiet })).size, 0);
+});
+
 test("a DID document with no https PDS gives no references", async () => {
 	for (const service of [[], [{ id: "#atproto_pds", serviceEndpoint: "http://pds.example" }]]) {
 		const { fetch } = fakeFetch([[`https://plc.directory/${DID}`, json({ service })]]);

@@ -76,6 +76,9 @@ export async function lookupDocumentRefs(
 		const pds = await resolvePds(did, fetch, signal);
 
 		const records = [];
+		// Cursors seen so far. A PDS that hands one back twice would page forever,
+		// and one that answers instantly never lets the deadline fire.
+		const seen = new Set();
 		let cursor;
 		do {
 			const url = new URL("/xrpc/com.atproto.repo.listRecords", pds);
@@ -89,11 +92,16 @@ export async function lookupDocumentRefs(
 			if (!Array.isArray(page.records)) throw new Error("listRecords returned no list of records");
 			records.push(...page.records);
 			cursor = page.cursor;
+			if (cursor && seen.has(cursor)) throw new Error("listRecords repeated a cursor");
+			seen.add(cursor);
 		} while (cursor);
 
 		return documentRefsByPath(records, publication);
 	} catch (error) {
-		const reason = signal.aborted ? `no answer within ${timeoutMs}ms` : /** @type {Error} */ (error).message;
+		// `error` can be anything that was thrown, including nothing at all.
+		const reason = signal.aborted
+			? `no answer within ${timeoutMs}ms`
+			: String(/** @type {any} */ (error)?.message ?? error);
 		warn(`document-refs: building without Document references (${reason}).`);
 		return new Map();
 	} finally {

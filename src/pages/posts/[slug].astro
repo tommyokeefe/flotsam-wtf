@@ -14,8 +14,12 @@ export async function getStaticPaths() {
 	// production no route is emitted for it at all (ADR 0004).
 	const posts = await getVisiblePosts();
 	// Asked once per build, not once per page. Never throws: if the PDS can't be
-	// read, every page just goes without (#42).
-	const documentRefs = await lookupDocumentRefs(PUBLICATION_AT_URI);
+	// read, every page just goes without (#42). Not asked on the dev server, where
+	// this runs per request and an offline laptop would wait out the deadline on
+	// every page; a build shows the references.
+	const documentRefs = import.meta.env.DEV
+		? new Map<string, string>()
+		: await lookupDocumentRefs(PUBLICATION_AT_URI);
 	return posts.map((post) => ({
 		params: { slug: post.id },
 		props: { post, documentUri: documentRefs.get(postPath(post)) },
